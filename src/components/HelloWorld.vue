@@ -1,48 +1,148 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+  <div id="app">
+    <!-- Conditional rendering for the header -->
+    <div v-if="state === 'add'">
+      <h1>Add Todo's</h1>
+      <button @click="goBack">Back</button>
+    </div>
+    <div v-else-if="state === 'edit'">
+      <h1>Edit Todo's</h1>
+      <button @click="goBack">Back</button>
+    </div>
+    <div v-else>
+      <h1>Todo's</h1>
+    </div>
+
+    <div v-if="showForms()">
+      <input v-model="newTodo.name" placeholder="New Todo">
+      <input v-model="newTodo.user" placeholder="User">
+
+      <!-- Dropdown for task status -->
+      <select v-model="newTodo.openStatus">
+        <option :value="true">Open</option>
+        <option :value="false">Closed</option>
+      </select>
+
+      <!-- Add Todo to list -->
+      <button @click="addTodo">Finish</button>
+
+      <!-- Cancel button to reset the form -->
+      <button @click="goBack">Quit</button>
+    </div>
+
+    <div v-else>
+      <button @click="addMode">Add</button>
+      <!-- Filter buttons -->
+      <div>
+        <button @click="filter = 'open'">Open</button>
+        <button @click="filter = 'closed'">Closed</button>
+      </div>
+
+      <!-- Search by name input -->
+      <input v-model="searchQuery" placeholder="Search by name">
+
+      <!-- Todo list -->
+      <ul>
+        <li v-for="(todo, index) in filteredTodos" :key="index" class="todo-item">
+          <div class="task-card">
+            <div>{{ todo.name }}
+              <button @click="toggleStatus(index)">{{ todo.openStatus ? 'Close' : 'Reopen' }}</button>
+              <button @click="editMode(todo, index)">Edit</button>
+            </div>
+            <div>User: {{ todo.user }}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <script>
 export default {
   name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+  data() {
+    return {
+      newTodo: {
+          name: '',
+          user: '',
+          openStatus: true,
+      },
+      todos: [],
+      filter: 'open',
+      searchQuery: '',
+      state: '',
+      editIndex: 0,
+    };
+  },
+  methods: {
+    addTodo() {
+      if (this.newTodo.name.trim() !== '' && this.state === 'add') {
+        this.todos.push({
+          name: this.newTodo.name,
+          user: this.newTodo.user,
+          openStatus: this.newTodo.openStatus
+        });
+        this.goBack();
+      } else if (this.newTodo.name.trim() !== '' && this.state === 'edit') {
+        this.todos[this.editIndex].name = this.newTodo.name;
+        this.todos[this.editIndex].user = this.newTodo.user;
+        this.todos[this.editIndex].openStatus = this.newTodo.openStatus;
+
+        this.goBack();
+      }
+    },
+    toggleStatus(index) {
+      this.todos[index].openStatus = !this.todos[index].openStatus;
+    },
+    resetTodoForm() {
+      this.newTodo.name = '';
+      this.newTodo.user = '';
+      this.newTodo.openStatus = true;
+    },
+    goBack() {
+      this.state = '';
+      this.resetTodoForm();
+    },
+    showForms() {
+      return this.state === 'add' || this.state === 'edit';
+    },
+    addMode() {
+      this.state = 'add';
+      this.resetTodoForm();
+    },
+    editMode(todo, index) {
+      this.state = 'edit';
+      this.newTodo.name = todo.name;
+      this.newTodo.user = todo.user;
+      this.newTodo.openStatus = todo.openStatus;
+
+      this.editIndex = index;
+    },
+  },
+  computed: {
+    filteredTodos() {
+      return this.todos.filter(todo => {
+            const nameMatches = todo.name.toLowerCase().includes(this.searchQuery.toLowerCase());
+            if (this.filter === 'open') {
+              return todo.openStatus && nameMatches;
+            } else if (this.filter === 'closed') {
+              return !todo.openStatus && nameMatches;
+            } else {
+              return nameMatches;
+            }
+          });
+    },
+  },
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+.task-card {
+  border: 1px solid black;
+}
+.todo-item {
+  display: block;
 }
 ul {
   list-style-type: none;
@@ -51,8 +151,5 @@ ul {
 li {
   display: inline-block;
   margin: 0 10px;
-}
-a {
-  color: #42b983;
 }
 </style>
